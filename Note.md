@@ -48,6 +48,7 @@
 ## Siapkan .env
 - Pastikan `.env` ada di root repo.
 - Update email setting jika perlu.
+  - Tambahkan `ALLOWED_HOSTS=127.0.0.1,localhost,0.0.0.0` jika diperlukan.
 
 ## Jalankan Compose
 ```bash
@@ -66,6 +67,33 @@ docker compose logs -f
 
 ## Akses Aplikasi
 - Buka `http://localhost:8000`
+
+## Jalankan Migrasi & Buat Akun Admin
+```bash
+docker exec djangolms python manage.py migrate
+docker exec djangolms python manage.py createsuperuser
+```
+
+## Catatan Login
+- Login di `http://localhost:8000/en/accounts/login/?next=/en/`
+
+---
+
+# Menjalankan via Docker Run (GHCR)
+
+## Jalankan Container
+```bash
+docker run -d --name djangolms --env-file .env -p 8000:8000 ghcr.io/gunanto/djangolms:latest
+```
+
+## Jalankan Migrasi & Buat Akun Admin
+```bash
+docker exec djangolms python manage.py migrate
+docker exec djangolms python manage.py createsuperuser
+```
+
+## Catatan Login
+- Login di `http://localhost:8000/en/accounts/login/?next=/en/`
 
 ---
 

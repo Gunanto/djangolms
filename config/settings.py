@@ -27,7 +27,14 @@ SECRET_KEY = config(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = ["127.0.0.1", "adilmohak1.pythonanywhere.com"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in config(
+        "ALLOWED_HOSTS",
+        default="127.0.0.1,localhost,0.0.0.0,adilmohak1.pythonanywhere.com",
+    ).split(",")
+    if host.strip()
+]
 
 # change the default user models to our custom model
 AUTH_USER_MODEL = "accounts.User"
