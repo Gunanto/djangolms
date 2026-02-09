@@ -7,18 +7,8 @@ from django.db.models import Q
 from PIL import Image
 
 from course.models import Program
+from core.choices import LEVEL
 from .validators import ASCIIUsernameValidator
-
-
-# LEVEL_COURSE = "Level course"
-BACHELOR_DEGREE = _("Bachelor")
-MASTER_DEGREE = _("Master")
-
-LEVEL = (
-    # (LEVEL_COURSE, "Level course"),
-    (BACHELOR_DEGREE, _("Bachelor Degree")),
-    (MASTER_DEGREE, _("Master Degree")),
-)
 
 FATHER = _("Father")
 MOTHER = _("Mother")

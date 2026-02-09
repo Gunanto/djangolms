@@ -3,36 +3,17 @@ from django.urls import reverse
 
 from accounts.models import Student
 from core.models import Semester
+from core.choices import (
+    FIRST,
+    RESULT_LEVEL,
+    SECOND,
+    SEMESTER,
+    THIRD,
+    YEARS,
+)
 from course.models import Course
 
-YEARS = (
-    (1, "1"),
-    (2, "2"),
-    (3, "3"),
-    (4, "4"),
-    (4, "5"),
-    (4, "6"),
-)
-
-# LEVEL_COURSE = "Level course"
-BACHLOAR_DEGREE = "Bachloar"
-MASTER_DEGREE = "Master"
-
-LEVEL = (
-    # (LEVEL_COURSE, "Level course"),
-    (BACHLOAR_DEGREE, "Bachloar Degree"),
-    (MASTER_DEGREE, "Master Degree"),
-)
-
-FIRST = "First"
-SECOND = "Second"
-THIRD = "Third"
-
-SEMESTER = (
-    (FIRST, "First"),
-    (SECOND, "Second"),
-    (THIRD, "Third"),
-)
+LEVEL = RESULT_LEVEL
 
 A_PLUS = "A+"
 A = "A"

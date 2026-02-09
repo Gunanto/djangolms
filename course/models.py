@@ -10,35 +10,7 @@ from django.utils.translation import gettext_lazy as _
 # project import
 from .utils import *
 from core.models import ActivityLog
-
-YEARS = (
-    (1, "1"),
-    (2, "2"),
-    (3, "3"),
-    (4, "4"),
-    (4, "5"),
-    (4, "6"),
-)
-
-# LEVEL_COURSE = "Level course"
-BACHELOR_DEGREE = _("Bachelor")
-MASTER_DEGREE = _("Master")
-
-LEVEL = (
-    # (LEVEL_COURSE, "Level course"),
-    (BACHELOR_DEGREE, _("Bachelor Degree")),
-    (MASTER_DEGREE, _("Master Degree")),
-)
-
-FIRST = _("First")
-SECOND = _("Second")
-THIRD = _("Third")
-
-SEMESTER = (
-    (FIRST, _("First")),
-    (SECOND, _("Second")),
-    (THIRD, _("Third")),
-)
+from core.choices import LEVEL, SEMESTER, YEARS
 
 
 class ProgramManager(models.Manager):
