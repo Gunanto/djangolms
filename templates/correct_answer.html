@@ -1,33 +1,64 @@
 {% load i18n %}
-{% if previous.answers %}
+{% load quiz_tags %}
 
+{% if previous.answers %}
   {% if user_was_incorrect %}
     <div class="alert alert-error">
-  	  <strong>{% trans "You answered the above question incorrectly" %}</strong>
+      <strong>{% trans "You answered the above question incorrectly" %}</strong>
     </div>
   {% endif %}
 
-  <table class="table table-striped table-bordered">
-    <tbody>
-  	  {% for answer in previous.answers %}
-        {% if answer.correct %}
-  	    <tr class="success">
-  		  <td>{{ answer }}</td>
-  		  <td><strong>{% trans "This is the correct answer" %}</strong></td>
-		</tr>
-        {% else %}
-  		<tr>
-      	  <td>{{ answer }}</td>
-  		  <td>
-  			{% if previous.question_type.MCQuestion %}
-  			  {% if answer.id|add:"0" == previous.previous_answer|add:"0" %}
-  			    {% trans "This was your answer." %}
-  			  {% endif %}
-  			{% endif %}
-  		  </td>
-		</tr>
-  	  {% endif %}
-  	{% endfor %}
-    </tbody>
-  </table>
+  {% if previous.question_type.TrueFalseQuestion %}
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>{% trans "Statement" %}</th>
+          <th>{% trans "Correct" %}</th>
+          <th>{% trans "Your answer" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stmt in previous.answers %}
+        <tr>
+          <td>{{ stmt.statement }}</td>
+          <td>{% if stmt.correct %}{% trans "Benar" %}{% else %}{% trans "Salah" %}{% endif %}</td>
+          <td>
+            {% if previous.previous_answer %}
+              {% if previous.previous_answer|get_item:stmt.id %}{% trans "Benar" %}{% else %}{% trans "Salah" %}{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <table class="table table-striped table-bordered">
+      <tbody>
+        {% for answer in previous.answers %}
+          {% if answer.correct %}
+            <tr class="success">
+              <td>{{ answer }}</td>
+              <td><strong>{% trans "This is the correct answer" %}</strong></td>
+            </tr>
+          {% else %}
+            <tr>
+              <td>{{ answer }}</td>
+              <td>
+                {% if previous.question_type.MCQuestion %}
+                  {% if answer.id|add:"0" == previous.previous_answer|add:"0" %}
+                    {% trans "This was your answer." %}
+                  {% endif %}
+                {% endif %}
+                {% if previous.question_type.MultiResponseQuestion %}
+                  {% if answer.id in previous.previous_answer %}
+                    {% trans "This was your answer." %}
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 {% endif %}

@@ -16,10 +16,26 @@ def correct_answer_for_all(context, question):
     else:
         user_was_incorrect = False
 
-    return {'previous': {'answers': answers},
-            'user_was_incorrect': user_was_incorrect}
+    question_type = {question.__class__.__name__: True}
+    previous_answer = getattr(question, "user_answer", None)
+
+    return {
+        "previous": {
+            "answers": answers,
+            "previous_answer": previous_answer,
+            "question_type": question_type,
+        },
+        "user_was_incorrect": user_was_incorrect,
+    }
 
 
 @register.filter
 def answer_choice_to_string(question, answer):
     return question.answer_choice_to_string(answer)
+
+
+@register.filter
+def get_item(value, key):
+    if isinstance(value, dict):
+        return value.get(key) or value.get(str(key))
+    return None

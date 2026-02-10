@@ -21,7 +21,7 @@ content %}
             >
         </li>
         <li class="breadcrumb-item active" aria-current="page">
-            {% trans 'MC Question Form' %}
+            {% trans 'Multi Response Question Form' %}
         </li>
     </ol>
 </nav>
@@ -47,9 +47,9 @@ content %}
     <div class="mb-3">
         <a
             class="btn btn-outline-secondary"
-            href="{% url 'mr_create' course.slug quiz_obj.id %}"
+            href="{% url 'mc_create' course.slug quiz_obj.id %}"
         >
-            {% trans 'Add Multi Response Question' %}
+            {% trans 'Add Multiple Choice Question' %}
         </a>
         <a
             class="btn btn-outline-secondary ms-2"
@@ -75,7 +75,9 @@ content %}
             <div class="col mx-3 py-4 border bg-white">
                 {{ form.choice_order|as_crispy_field }}
                 <div class="border p-2">
-                    <label class="lead">{% trans 'Choices' %}</label>
+                    <label class="lead"
+                        >{% trans 'Choices (select all correct)' %}</label
+                    >
                     {{ formset.management_form }} {% for fs in formset %}
                     <label for="username">{{ fs.label }}</label>
                     <div class="input-group">

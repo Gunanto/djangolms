@@ -1,177 +1,512 @@
-{% extends "base.html" %}
-{% load i18n%}
+{% extends "base.html" %} {% load i18n %} {% load quiz_tags %} {% block title %}
+{{ quiz.title }} | {% trans 'Learning management system' %} {% endblock %} {%
+block description %} {{ quiz.title }} - {{ quiz.description }} {% endblock %} {%
+block content %}
+<style>
+    .quiz-play {
+        --qp-primary: #0e7490;
+        --qp-primary-dark: #0f4c81;
+        --qp-accent: #f59e0b;
+        --qp-bg: #f5f7fb;
+        --qp-card: #ffffff;
+        --qp-border: #e5e7eb;
+        --qp-text: #0f172a;
+        --qp-muted: #64748b;
+        background: var(--qp-bg);
+        border-radius: 12px;
+        padding: 16px;
+    }
+    .quiz-topbar {
+        background: linear-gradient(
+            90deg,
+            var(--qp-primary-dark),
+            var(--qp-primary)
+        );
+        color: #fff;
+        border-radius: 10px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .quiz-topbar .quiz-title {
+        font-weight: 600;
+        letter-spacing: 0.2px;
+    }
+    .quiz-topbar .quiz-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .quiz-topbar .timer {
+        background: #fff;
+        color: var(--qp-primary-dark);
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+    }
+    .quiz-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 16px;
+        margin-top: 16px;
+    }
+    .quiz-card {
+        background: var(--qp-card);
+        border: 1px solid var(--qp-border);
+        border-radius: 10px;
+        padding: 16px;
+    }
+    .quiz-side .quiz-card {
+        position: sticky;
+        top: 12px;
+    }
+    .quiz-question-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--qp-text);
+        margin-bottom: 12px;
+    }
+    .qp-question-table th,
+    .qp-question-table td {
+        vertical-align: middle;
+    }
+    .qp-choices-list .list-group-item {
+        border-color: var(--qp-border);
+    }
+    .qp-nav-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .qp-nav-item {
+        border: 1px solid var(--qp-border);
+        border-radius: 6px;
+        text-align: center;
+        padding: 6px 0;
+        font-size: 0.85rem;
+        background: #fff;
+        color: var(--qp-muted);
+    }
+    .qp-nav-item.current {
+        border-color: var(--qp-primary);
+        color: var(--qp-primary);
+        font-weight: 700;
+        box-shadow: 0 0 0 2px rgba(14, 116, 144, 0.1);
+    }
+    .qp-nav-item.done {
+        background: #dcfce7;
+        border-color: #86efac;
+        color: #166534;
+    }
+    .qp-nav-legend {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        color: var(--qp-muted);
+    }
+    .qp-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    .qp-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .qp-actions .btn {
+        min-width: 140px;
+    }
+    @media (max-width: 992px) {
+        .quiz-grid {
+            grid-template-columns: 1fr;
+        }
+        .quiz-side .quiz-card {
+            position: static;
+        }
+    }
+</style>
 
-
-{% block title %} {{ quiz.title }} | {% trans 'Learning management system' %} {% endblock %}
-{% block description %} {{ quiz.title }} - {{ quiz.description }} {% endblock %}
-
-{% block content %}
-
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-		<li class="breadcrumb-item"><a href="{% url 'programs' %}">Programs</a></li>
-		<li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
-		<li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
-		<li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
-		<li class="breadcrumb-item active" aria-current="page">{{ quiz.title|title }}</li>
-	</ol>
-</nav>
-
-<div class="title-1">{{ quiz.title|title|truncatechars:25 }}</div>
-<br>
-
-<div class="container">
-
-	{% if previous.answers %}
-
-	<p class="muted"><small>{% trans "The previous question" %}:</small></p>
-	<p>{{ previous.previous_question }}</p>
-
-	{% if previous.previous_outcome %}
-		<div class="alert alert-success">
-	{% else %}
-		<div class="alert alert-warning">
-	{% endif %}
-		<p><small>
-			{% trans "Your answer was" %} </small>
-			<strong>
-			{{ previous.previous_outcome|yesno:"correct,incorrect" }}
-			</strong>
-		</p>
-
-		</div>
-		
-        {% load i18n %}
-        {% if previous.answers %}
-
-          {% if user_was_incorrect %}
-            <div class="alert alert-error">
-              <strong>{% trans "You answered the above question incorrectly" %}</strong>
+<div class="quiz-play">
+    <div class="quiz-topbar">
+        <div class="quiz-title">{{ quiz.title|title|truncatechars:35 }}</div>
+        <div class="quiz-meta">
+            <div class="small">
+                {{ request.user.get_full_name|default:request.user.username }}
             </div>
-          {% endif %}
+            <div class="timer" id="quiz-timer" data-seconds="3600">
+                {% trans 'SISA WAKTU' %}: <span>60:00</span>
+            </div>
+        </div>
+    </div>
 
-          <table class="table table-striped table-bordered">
-            <tbody>
-              {% for answer in previous.answers %}
-                {% if answer.correct %}
-                  <tr class="success">
-                    <td>{{ answer }}</td>
-                  <td><strong>{% trans "This is the correct answer" %}</strong></td>
-				  </tr>
+    <div class="quiz-grid">
+        <div class="quiz-main">
+            {% if previous.answers %}
+            <p class="muted">
+                <small>{% trans "The previous question" %}:</small>
+            </p>
+            <p>{{ previous.previous_question }}</p>
+
+            {% if previous.previous_outcome %}
+            <div class="alert alert-success">
                 {% else %}
-                  <tr>
-                    <td>{{ answer }}</td>
-                    <td>
-                    {% if previous.question_type.MCQuestion %}
-                      {% if answer.id|add:"0" == previous.previous_answer|add:"0" %}
-                        {% trans "This was your answer." %}
-                      {% endif %}
+                <div class="alert alert-warning">
                     {% endif %}
-                    </td>
-                  {% endif %}
-                  </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% endif %}
-		
+                    <p>
+                        <small>{% trans "Your answer was" %}</small>
+                        <strong
+                            >{{
+                            previous.previous_outcome|yesno:"correct,incorrect"
+                            }}</strong
+                        >
+                    </p>
+                </div>
 
-        <p><strong>{% trans "Explanation" %}:</strong></p>
-        <p class="p-2" style="background-color: #fcf8e3;">
-          {% if previous.previous_question.explanation %}
-            {{ previous.previous_question.explanation }}
-          {% else %}
-            {% trans "No explanation set to this question." %}
-          {% endif %}
-		</p>
-		
-		<!-- <p><strong>{% trans "Explanation" %}:</strong></p>
-		<div class="well " style="background-color: #fcf8e3;">
-		<p>{{ previous.previous_question.explanation }}</p>
-		</div> -->
+                {% if previous.answers %} {% if user_was_incorrect %}
+                <div class="alert alert-error">
+                    <strong
+                        >{% trans "You answered the above question incorrectly"
+                        %}</strong
+                    >
+                </div>
+                {% endif %} {% if previous.question_type.TrueFalseQuestion %}
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Statement" %}</th>
+                            <th>{% trans "Correct" %}</th>
+                            <th>{% trans "Your answer" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stmt in previous.answers %}
+                        <tr>
+                            <td>{{ stmt.statement }}</td>
+                            <td>
+                                {% if stmt.correct %}{% trans "Benar" %}{% else
+                                %}{% trans "Salah" %}{% endif %}
+                            </td>
+                            <td>
+                                {% if previous.previous_answer %} {% if
+                                previous.previous_answer|get_item:stmt.id %}{%
+                                trans "Benar" %}{% else %}{% trans "Salah" %}{%
+                                endif %} {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <table class="table table-striped table-bordered">
+                    <tbody>
+                        {% for answer in previous.answers %} {% if
+                        answer.correct %}
+                        <tr class="success">
+                            <td>{{ answer }}</td>
+                            <td>
+                                <strong
+                                    >{% trans "This is the correct answer"
+                                    %}</strong
+                                >
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td>{{ answer }}</td>
+                            <td>
+                                {% if previous.question_type.MCQuestion %} {% if
+                                answer.id|add:"0" ==
+                                previous.previous_answer|add:"0" %} {% trans
+                                "This was your answer." %} {% endif %} {% endif
+                                %} {% if
+                                previous.question_type.MultiResponseQuestion %}
+                                {% if answer.id in previous.previous_answer %}
+                                {% trans "This was your answer." %} {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %} {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %} {% endif %}
 
-		<hr>
+                <p><strong>{% trans "Explanation" %}:</strong></p>
+                <p class="p-2" style="background-color: #fcf8e3">
+                    {% if previous.previous_question.explanation %} {{
+                    previous.previous_question.explanation }} {% else %} {%
+                    trans "No explanation set to this question." %} {% endif %}
+                </p>
 
-	{% endif %}
+                <hr />
+                {% endif %} {% if question %} {% if progress.0|add:1 == 1 %}
+                <div
+                    class="modal fade show"
+                    id="instractionModal"
+                    tabindex="-1"
+                    aria-labelledby="instractionModalLabel"
+                    aria-hidden="true"
+                >
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1
+                                    class="modal-title fs-5"
+                                    id="instractionModalLabel"
+                                >
+                                    {% trans 'Quiz instractions' %}
+                                </h1>
+                                <button
+                                    type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div class="modal-body">
+                                {% blocktrans %} You can't go back to the
+                                previous question after you submit it, so double
+                                check your answer before proceeding to the next
+                                one! {% endblocktrans %}
+                            </div>
+                            <div class="modal-footer">
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    data-bs-dismiss="modal"
+                                >
+                                    {% trans 'Understood' %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %} {% if progress %}
+                <div
+                    class="text-light rounded small px-2 bg-danger"
+                    style="float: right"
+                >
+                    {% trans "Question" %} {{ progress.0|add:1 }} {% trans "of"
+                    %} {{ progress.1 }}
+                </div>
+                {% endif %}
 
-	<br />
+                <p>
+                    <small class="muted">{% trans "Quiz category" %}:</small>
+                    <strong>{{ quiz.category }}</strong>
+                </p>
 
-	{% if question %}
+                <div class="quiz-card">
+                    <div class="quiz-question-title">
+                        {{ question.content }}
+                    </div>
 
-	{% if progress.0|add:1 == 1 %}
+                    {% if question.figure %}
+                    <div class="col-md-8 mx-auto">
+                        <img
+                            class="q-img"
+                            src="{{ question.figure.url }}"
+                            alt="{{ question.content }}"
+                            style="max-width: 100%"
+                        />
+                    </div>
+                    {% endif %}
 
-	<div class="modal fade show" id="instractionModal" tabindex="-1" aria-labelledby="instractionModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
-		  <div class="modal-content">
-			<div class="modal-header">
-			  <h1 class="modal-title fs-5" id="instractionModalLabel">{% trans 'Quiz instractions' %}</h1>
-			  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-			</div>
-			<div class="modal-body">
-				{% blocktrans %} 
-				You can't go back to the previous question after you submit it, 
-				so double check your answer before proceeding to the next one!
-				{% endblocktrans %}
-			</div>
-			<div class="modal-footer">
-			  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{% trans 'Understood' %}</button>
-			</div>
-		  </div>
-		</div>
-	  </div>
-	{% endif %}
+                    <div class="card-subtitle p-2">
+                        <form action="" method="POST">
+                            {% csrf_token %}
+                            <input
+                                type="hidden"
+                                name="question_id"
+                                value="{{ question.id }}"
+                            />
 
-	{% if progress %}
-	<div class="text-light rounded small px-2 bg-danger" style="float: right;">
-	{% trans "Question" %} {{ progress.0|add:1 }} {% trans "of" %} {{ progress.1 }}
-	</div>
-	{% endif %}
+                            {% if question_type == "TrueFalseQuestion" %}
+                            <div class="table-responsive">
+                                <table
+                                    class="table table-bordered qp-question-table"
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Pernyataan" %}</th>
+                                            <th class="text-center">
+                                                {% trans "Benar" %}
+                                            </th>
+                                            <th class="text-center">
+                                                {% trans "Salah" %}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stmt, field_name in
+                                        form.statement_fields %}
+                                        <tr>
+                                            <td>{{ stmt.statement }}</td>
+                                            <td class="text-center">
+                                                <input
+                                                    type="radio"
+                                                    name="{{ field_name }}"
+                                                    value="true"
+                                                    id="{{ field_name }}_true"
+                                                    {%
+                                                    if
+                                                    form[field_name].value=""
+                                                    ="true"
+                                                    %}checked{%
+                                                    endif
+                                                    %}
+                                                    required
+                                                />
+                                            </td>
+                                            <td class="text-center">
+                                                <input
+                                                    type="radio"
+                                                    name="{{ field_name }}"
+                                                    value="false"
+                                                    id="{{ field_name }}_false"
+                                                    {%
+                                                    if
+                                                    form[field_name].value=""
+                                                    ="false"
+                                                    %}checked{%
+                                                    endif
+                                                    %}
+                                                    required
+                                                />
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <ul class="list-group qp-choices-list">
+                                {% for answer in form.answers %}
+                                <li class="list-group-item">{{ answer }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
 
-	<p>
-		<small class="muted">{% trans "Quiz category" %}:</small>
-		<strong>{{ quiz.category }}</strong>
-	</p>
+                            <div class="qp-actions">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        value="1"
+                                        id="flag-doubt"
+                                    />
+                                    <label
+                                        class="form-check-label"
+                                        for="flag-doubt"
+                                        >{% trans 'Ragu-ragu' %}</label
+                                    >
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button
+                                        class="btn btn-outline-secondary"
+                                        type="button"
+                                        disabled
+                                    >
+                                        {% trans 'Soal Sebelumnya' %}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                    >
+                                        {% trans 'Soal Berikutnya' %}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
 
-	<div class="card">
-		<div class="lead p-2">{{ question.content }}</div>
+            <aside class="quiz-side">
+                <div class="quiz-card">
+                    <div class="fw-semibold mb-2">
+                        {% trans "Daftar Soal" %}
+                    </div>
+                    <div class="qp-nav-grid">
+                        {% for item in question_nav %}
+                        <div class="qp-nav-item {{ item.state }}">
+                            {{ item.num }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="qp-nav-legend">
+                        <div>
+                            <span
+                                class="qp-legend-dot"
+                                style="
+                                    background: #dcfce7;
+                                    border: 1px solid #86efac;
+                                "
+                            ></span
+                            >{% trans "Sudah" %}
+                        </div>
+                        <div>
+                            <span
+                                class="qp-legend-dot"
+                                style="
+                                    background: #fff;
+                                    border: 1px solid #e5e7eb;
+                                "
+                            ></span
+                            >{% trans "Belum" %}
+                        </div>
+                        <div>
+                            <span
+                                class="qp-legend-dot"
+                                style="
+                                    background: #fff;
+                                    border: 1px solid #0e7490;
+                                "
+                            ></span
+                            >{% trans "Dibuka" %}
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    {% endblock %} {% block js %}
+    <script>
+        var instractionEl = document.getElementById("instractionModal");
+        if (instractionEl) {
+            var instractionModal = new bootstrap.Modal(instractionEl, {
+                keyboard: false,
+            });
+            instractionModal.show();
+        }
 
-		{% if question.figure %}
-		<div class="col-md-8 mx-auto">
-			<img class="q-img" src="{{ question.figure.url }}" alt="{{ question.content }}" style="max-width: 100%;"/>
-		</div>
-		{% endif %}
-		<div class="card-subtitle p-4">
-			<form action="" method="POST">{% csrf_token %}
-				<input type="hidden" name="question_id" value="{{ question.id }}">
-
-				<ul class="list-group">
-
-					{% for answer in form.answers %}
-					<li class="list-group-item">
-						{{ answer }}
-					</li>
-					{% endfor %}
-
-				</ul>
-				<br>
-				<input type="submit" value="Check" class="btn btn-large btn-block btn-primary" />
-				<!-- <input type="submit" value={% trans "Previous" %} class="btn btn-large btn-block btn-outline-primary" > -->
-			</form>
-		</div>
-
-		{% endif %}
-	</div>
-
+        (function () {
+            var timerEl = document.getElementById("quiz-timer");
+            if (!timerEl) return;
+            var seconds = parseInt(
+                timerEl.getAttribute("data-seconds") || "0",
+                10,
+            );
+            var label = timerEl.querySelector("span");
+            function tick() {
+                if (seconds < 0) return;
+                var m = Math.floor(seconds / 60);
+                var s = seconds % 60;
+                label.textContent = m + ":" + String(s).padStart(2, "0");
+                seconds -= 1;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
+    {% endblock js %}
 </div>
-
-{% endblock %}
-
-{% block js %}
-<script>
-	const instractionModal = new bootstrap.Modal('#instractionModal', {
-		keyboard: false
-	})
-	instractionModal.show();
-</script>
-{% endblock js %}

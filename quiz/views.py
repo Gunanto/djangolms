@@ -14,13 +14,29 @@ from django.contrib import messages
 from django.db import transaction
 
 from accounts.decorators import lecturer_required
-from .models import Course, Progress, Sitting, EssayQuestion, Quiz, MCQuestion, Question
+from .models import (
+    Course,
+    Progress,
+    Sitting,
+    EssayQuestion,
+    Quiz,
+    MCQuestion,
+    Question,
+    MultiResponseQuestion,
+    TrueFalseQuestion,
+)
 from .forms import (
     QuizAddForm,
     MCQuestionForm,
     MCQuestionFormSet,
     QuestionForm,
     EssayForm,
+    MultiResponseForm,
+    MultiResponseQuestionForm,
+    MultiResponseQuestionFormSet,
+    TrueFalseForm,
+    TrueFalseQuestionForm,
+    TrueFalseQuestionFormSet,
 )
 
 
@@ -135,6 +151,95 @@ class MCQuestionCreate(CreateView):
             return self.form_invalid(form)
         return super(MCQuestionCreate, self).form_invalid(form)
 
+
+@method_decorator([login_required, lecturer_required], name="dispatch")
+class MultiResponseQuestionCreate(CreateView):
+    model = MultiResponseQuestion
+    form_class = MultiResponseQuestionForm
+
+    def get_context_data(self, **kwargs):
+        context = super(MultiResponseQuestionCreate, self).get_context_data(**kwargs)
+        context["course"] = Course.objects.get(slug=self.kwargs["slug"])
+        context["quiz_obj"] = Quiz.objects.get(id=self.kwargs["quiz_id"])
+        context["quizQuestions"] = Question.objects.filter(
+            quiz=self.kwargs["quiz_id"]
+        ).count()
+        if self.request.POST:
+            context["form"] = MultiResponseQuestionForm(self.request.POST)
+            context["formset"] = MultiResponseQuestionFormSet(self.request.POST)
+        else:
+            context["form"] = MultiResponseQuestionForm(
+                initial={"quiz": self.kwargs["quiz_id"]}
+            )
+            context["formset"] = MultiResponseQuestionFormSet()
+
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context["formset"]
+        course = context["course"]
+        if formset.is_valid():
+            with transaction.atomic():
+                form.instance.question = self.request.POST.get("content")
+                self.object = form.save()
+                formset.instance = self.object
+                formset.save()
+                if "another" in self.request.POST:
+                    return redirect(
+                        "mr_create",
+                        slug=self.kwargs["slug"],
+                        quiz_id=self.kwargs["quiz_id"],
+                    )
+                return redirect("quiz_index", course.slug)
+        else:
+            return self.form_invalid(form)
+        return super(MultiResponseQuestionCreate, self).form_invalid(form)
+
+
+@method_decorator([login_required, lecturer_required], name="dispatch")
+class TrueFalseQuestionCreate(CreateView):
+    model = TrueFalseQuestion
+    form_class = TrueFalseQuestionForm
+
+    def get_context_data(self, **kwargs):
+        context = super(TrueFalseQuestionCreate, self).get_context_data(**kwargs)
+        context["course"] = Course.objects.get(slug=self.kwargs["slug"])
+        context["quiz_obj"] = Quiz.objects.get(id=self.kwargs["quiz_id"])
+        context["quizQuestions"] = Question.objects.filter(
+            quiz=self.kwargs["quiz_id"]
+        ).count()
+        if self.request.POST:
+            context["form"] = TrueFalseQuestionForm(self.request.POST)
+            context["formset"] = TrueFalseQuestionFormSet(self.request.POST)
+        else:
+            context["form"] = TrueFalseQuestionForm(
+                initial={"quiz": self.kwargs["quiz_id"]}
+            )
+            context["formset"] = TrueFalseQuestionFormSet()
+
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context["formset"]
+        course = context["course"]
+        if formset.is_valid():
+            with transaction.atomic():
+                form.instance.question = self.request.POST.get("content")
+                self.object = form.save()
+                formset.instance = self.object
+                formset.save()
+                if "another" in self.request.POST:
+                    return redirect(
+                        "tf_create",
+                        slug=self.kwargs["slug"],
+                        quiz_id=self.kwargs["quiz_id"],
+                    )
+                return redirect("quiz_index", course.slug)
+        else:
+            return self.form_invalid(form)
+        return super(TrueFalseQuestionCreate, self).form_invalid(form)
 
 @login_required
 def quiz_list(request, slug):
@@ -274,6 +379,10 @@ class QuizTake(FormView):
 
         if self.question.__class__ is EssayQuestion:
             form_class = EssayForm
+        elif self.question.__class__ is MultiResponseQuestion:
+            form_class = MultiResponseForm
+        elif self.question.__class__ is TrueFalseQuestion:
+            form_class = TrueFalseForm
         else:
             form_class = self.form_class
 
@@ -298,6 +407,21 @@ class QuizTake(FormView):
         context["question"] = self.question
         context["quiz"] = self.quiz
         context["course"] = get_object_or_404(Course, pk=self.kwargs["pk"])
+        context["question_type"] = self.question.__class__.__name__
+        question_ids = self.sitting._question_ids()
+        remaining_ids = [int(n) for n in self.sitting.question_list.split(",") if n]
+        current_id = remaining_ids[0] if remaining_ids else None
+        answered_ids = [qid for qid in question_ids if qid not in remaining_ids]
+        nav = []
+        for idx, qid in enumerate(question_ids, start=1):
+            if qid == current_id:
+                state = "current"
+            elif qid in answered_ids:
+                state = "done"
+            else:
+                state = "open"
+            nav.append({"num": idx, "id": qid, "state": state})
+        context["question_nav"] = nav
         if hasattr(self, "previous"):
             context["previous"] = self.previous
         if hasattr(self, "progress"):
@@ -307,6 +431,14 @@ class QuizTake(FormView):
     def form_valid_user(self, form):
         progress, _ = Progress.objects.get_or_create(user=self.request.user)
         guess = form.cleaned_data["answers"]
+        if self.question.__class__ is MultiResponseQuestion:
+            try:
+                guess = [int(x) for x in guess]
+            except (TypeError, ValueError):
+                pass
+        if self.question.__class__ is TrueFalseQuestion:
+            if not isinstance(guess, dict):
+                guess = {}
         is_correct = self.question.check_if_correct(guess)
 
         if is_correct is True:

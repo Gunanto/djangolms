@@ -11,6 +11,10 @@ from .models import (
     Question,
     MCQuestion,
     Choice,
+    MultiResponseQuestion,
+    MultiResponseChoice,
+    TrueFalseQuestion,
+    TrueFalseStatement,
     EssayQuestion,
     Sitting,
 )
@@ -20,6 +24,12 @@ class ChoiceInline(admin.TabularInline):
     model = Choice
 
 
+class MultiResponseChoiceInline(admin.TabularInline):
+    model = MultiResponseChoice
+
+
+class TrueFalseStatementInline(admin.TabularInline):
+    model = TrueFalseStatement
 class QuizAdminForm(TranslationModelForm):
     class Meta:
         model = Quiz
@@ -69,6 +79,22 @@ class MCQuestionAdmin(TranslationAdmin):
     inlines = [ChoiceInline]
 
 
+class MultiResponseQuestionAdmin(TranslationAdmin):
+    list_display = ("content",)
+    fieldsets = [(u'figure' 'quiz' 'choice_order', {'fields': ("content","explanation")})]
+    search_fields = ("content", "explanation")
+    filter_horizontal = ("quiz",)
+    inlines = [MultiResponseChoiceInline]
+
+
+class TrueFalseQuestionAdmin(TranslationAdmin):
+    list_display = ("content",)
+    fieldsets = [(u'figure' 'quiz', {'fields': ("content","explanation")})]
+    search_fields = ("content", "explanation")
+    filter_horizontal = ("quiz",)
+    inlines = [TrueFalseStatementInline]
+
+
 class ProgressAdmin(admin.ModelAdmin):
     search_fields = (
         "user",
@@ -90,6 +116,8 @@ class EssayQuestionAdmin(admin.ModelAdmin):
 
 admin.site.register(Quiz, QuizAdmin)
 admin.site.register(MCQuestion, MCQuestionAdmin)
+admin.site.register(MultiResponseQuestion, MultiResponseQuestionAdmin)
+admin.site.register(TrueFalseQuestion, TrueFalseQuestionAdmin)
 admin.site.register(Progress, ProgressAdmin)
 admin.site.register(EssayQuestion, EssayQuestionAdmin)
 admin.site.register(Sitting)

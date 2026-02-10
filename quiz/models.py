@@ -544,6 +544,190 @@ class Choice(models.Model):
         verbose_name_plural = _("Choices")
 
 
+class MultiResponseQuestion(Question):
+    choice_order = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        choices=CHOICE_ORDER_OPTIONS,
+        help_text=_(
+            "The order in which multichoice choice options are displayed to the user"
+        ),
+        verbose_name=_("Choice Order"),
+    )
+
+    def check_if_correct(self, guess):
+        correct_ids = set(
+            MultiResponseChoice.objects.filter(question=self, correct=True).values_list(
+                "id", flat=True
+            )
+        )
+        if not correct_ids:
+            return False
+
+        try:
+            guess_ids = set(int(x) for x in guess)
+        except TypeError:
+            # Single value submitted
+            try:
+                guess_ids = {int(guess)}
+            except (TypeError, ValueError):
+                return False
+        except ValueError:
+            return False
+
+        return guess_ids == correct_ids
+
+    def order_choices(self, queryset):
+        if self.choice_order == "content":
+            return queryset.order_by("choice")
+        if self.choice_order == "random":
+            return queryset.order_by("?")
+        if self.choice_order == "none":
+            return queryset.order_by()
+        return queryset
+
+    def get_choices(self):
+        return self.order_choices(MultiResponseChoice.objects.filter(question=self))
+
+    def get_choices_list(self):
+        return [
+            (choice.id, choice.choice)
+            for choice in self.order_choices(
+                MultiResponseChoice.objects.filter(question=self)
+            )
+        ]
+
+    def answer_choice_to_string(self, guess):
+        if guess in (None, "", []):
+            return ""
+        try:
+            guess_ids = [int(x) for x in guess]
+        except TypeError:
+            try:
+                guess_ids = [int(guess)]
+            except (TypeError, ValueError):
+                return ""
+        except ValueError:
+            return ""
+
+        choices_by_id = {
+            c.id: c.choice
+            for c in MultiResponseChoice.objects.filter(id__in=guess_ids)
+        }
+        ordered = [choices_by_id.get(i) for i in guess_ids if i in choices_by_id]
+        return ", ".join(ordered)
+
+    class Meta:
+        verbose_name = _("Multi Response Question")
+        verbose_name_plural = _("Multi Response Questions")
+
+
+class MultiResponseChoice(models.Model):
+    question = models.ForeignKey(
+        MultiResponseQuestion, verbose_name=_("Question"), on_delete=models.CASCADE
+    )
+
+    choice = models.CharField(
+        max_length=1000,
+        blank=False,
+        help_text=_("Enter the choice text that you want displayed"),
+        verbose_name=_("Content"),
+    )
+
+    correct = models.BooleanField(
+        blank=False,
+        default=False,
+        help_text=_("Is this a correct answer?"),
+        verbose_name=_("Correct"),
+    )
+
+    def __str__(self):
+        return self.choice
+
+    class Meta:
+        verbose_name = _("Multi Response Choice")
+        verbose_name_plural = _("Multi Response Choices")
+
+
+class TrueFalseQuestion(Question):
+    def check_if_correct(self, guess):
+        correct_map = {
+            s.id: bool(s.correct)
+            for s in TrueFalseStatement.objects.filter(question=self)
+        }
+        if not correct_map:
+            return False
+
+        if not isinstance(guess, dict):
+            return False
+
+        try:
+            guess_map = {int(k): bool(v) for k, v in guess.items()}
+        except (TypeError, ValueError):
+            return False
+
+        if set(guess_map.keys()) != set(correct_map.keys()):
+            return False
+
+        for stmt_id, is_correct in correct_map.items():
+            if guess_map.get(stmt_id) is not is_correct:
+                return False
+
+        return True
+
+    def get_choices(self):
+        return TrueFalseStatement.objects.filter(question=self)
+
+    def answer_choice_to_string(self, guess):
+        if not isinstance(guess, dict):
+            return ""
+
+        try:
+            guess_map = {int(k): bool(v) for k, v in guess.items()}
+        except (TypeError, ValueError):
+            return ""
+
+        statements = {
+            s.id: s.statement
+            for s in TrueFalseStatement.objects.filter(id__in=guess_map.keys())
+        }
+        parts = []
+        for stmt_id, is_true in guess_map.items():
+            stmt = statements.get(stmt_id, f"Statement {stmt_id}")
+            parts.append(f"{stmt}: {'Benar' if is_true else 'Salah'}")
+        return " | ".join(parts)
+
+    class Meta:
+        verbose_name = _("True/False Question")
+        verbose_name_plural = _("True/False Questions")
+
+
+class TrueFalseStatement(models.Model):
+    question = models.ForeignKey(
+        TrueFalseQuestion, verbose_name=_("Question"), on_delete=models.CASCADE
+    )
+    statement = models.CharField(
+        max_length=1000,
+        blank=False,
+        help_text=_("Enter the statement text that you want displayed"),
+        verbose_name=_("Statement"),
+    )
+    correct = models.BooleanField(
+        blank=False,
+        default=False,
+        help_text=_("Is this statement true?"),
+        verbose_name=_("Correct"),
+    )
+
+    def __str__(self):
+        return self.statement
+
+    class Meta:
+        verbose_name = _("True/False Statement")
+        verbose_name_plural = _("True/False Statements")
+
+
 class EssayQuestion(Question):
     def check_if_correct(self, guess):
         return False

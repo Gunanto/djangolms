@@ -20,5 +20,15 @@ urlpatterns = [
         MCQuestionCreate.as_view(),
         name="mc_create",
     ),
+    path(
+        "mr-question/add/<slug>/<int:quiz_id>/",
+        MultiResponseQuestionCreate.as_view(),
+        name="mr_create",
+    ),
+    path(
+        "tf-question/add/<slug>/<int:quiz_id>/",
+        TrueFalseQuestionCreate.as_view(),
+        name="tf_create",
+    ),
     # path('mc-question/add/<int:pk>/<quiz_pk>/', MCQuestionCreate.as_view(), name='mc_create'),
 ]
