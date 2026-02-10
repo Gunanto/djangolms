@@ -70,8 +70,8 @@ docker compose logs -f
 
 ## Jalankan Migrasi & Buat Akun Admin
 ```bash
-docker exec djangolms python manage.py migrate
-docker exec djangolms python manage.py createsuperuser
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
 ```
 
 ## Catatan Login
@@ -81,15 +81,32 @@ docker exec djangolms python manage.py createsuperuser
 
 # Menjalankan via Docker Run (GHCR)
 
+## Login & Pull Image (opsional)
+```bash
+docker login ghcr.io -u gunanto
+docker pull ghcr.io/gunanto/djangolms:latest
+```
+
 ## Jalankan Container
 ```bash
 docker run -d --name djangolms --env-file .env -p 8000:8000 ghcr.io/gunanto/djangolms:latest
 ```
+## Otomatis migrate saat `docker run`
+```bash
+docker run --name djangolms --env-file .env -p 8000:8000 ghcr.io/gunanto/djangolms:latest \
+  bash -lc "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+```
+
+## Rebuild & Push Image (jika code lokal lebih baru)
+```bash
+docker build -t ghcr.io/gunanto/djangolms:latest .
+docker push ghcr.io/gunanto/djangolms:latest
+```
 
 ## Jalankan Migrasi & Buat Akun Admin
 ```bash
-docker exec djangolms python manage.py migrate
-docker exec djangolms python manage.py createsuperuser
+docker exec -it djangolms python manage.py migrate
+docker exec -it djangolms python manage.py createsuperuser
 ```
 
 ## Catatan Login
@@ -101,3 +118,21 @@ docker exec djangolms python manage.py createsuperuser
 - `.env` jangan di-commit.
 - Jika butuh database, tambahkan service Postgres di `docker-compose.yml` dan update `DATABASES` di `config/settings.py`.
 - Untuk produksi: set `DEBUG=False`, isi `SECRET_KEY`, dan konfigurasi email sesuai kebutuhan.
+
+## Persist Database (SQLite)
+- Untuk Compose, gunakan volume (sudah di `docker-compose.yml`):
+  - `./data/db.sqlite3:/app/db.sqlite3`
+- Untuk Docker Run:
+```bash
+docker run --name djangolms \
+  --env-file .env \
+  -p 8000:8000 \
+  -v $(pwd)/data/db.sqlite3:/app/db.sqlite3 \
+  ghcr.io/gunanto/djangolms:latest
+```
+
+## Cek Container Lama
+```bash
+docker ps -a
+docker start djangolms
+```
